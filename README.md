@@ -27,11 +27,41 @@ npm run dev
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=your-strong-password
 ADMIN_SESSION_SECRET=your-long-random-secret
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ## 数据存储
 
-提交内容会保存到本地 `data/confessions.json`。这个文件已加入 `.gitignore`，避免把真实匿名内容提交到仓库。
+提交内容会保存到 Supabase 的 `public.confessions` 表。先在 Supabase SQL Editor 执行：
+
+```sql
+create extension if not exists pgcrypto;
+
+create table if not exists public.confessions (
+  id uuid primary key default gen_random_uuid(),
+  nickname text not null default '匿名同事' check (char_length(nickname) <= 24),
+  content text not null check (char_length(content) between 5 and 1200),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists confessions_created_at_idx
+  on public.confessions (created_at desc);
+
+alter table public.confessions enable row level security;
+```
+
+同样的 SQL 也放在 `supabase/schema.sql`。
+
+在 Vercel 项目设置里添加这些环境变量：
+
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+- `ADMIN_SESSION_SECRET`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+`SUPABASE_SERVICE_ROLE_KEY` 只能放在服务端环境变量里，不要写成 `NEXT_PUBLIC_`，也不要放到前端代码。
 
 ## 常用命令
 
